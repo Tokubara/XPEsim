@@ -57,7 +57,7 @@ class HWEval(object):
                             LevelCol = LevelCol.astype('int')
                             numoflevels = []
                             for level in range(Rlevel):
-                                numoflevels.append(np.sum(LevelCol==level))
+                                numoflevels.append(int(np.sum(LevelCol==level)))
                             self.HWsim_.numof1 = numoflevels[0]
                             self.HWsim_.numof2 = numoflevels[1]
                             self.HWsim_.numof3 = numoflevels[2]

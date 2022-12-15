@@ -94,10 +94,10 @@ int main()
 
 	core->CalculateArea();
 	core->CalculateLatency(1e20);
-	core->CalculatePower();
+	core->CalculatePower(112.3);
 	core->PrintProperty();
 	
-	//core->SaveOutput(readParam.outputFilePrefix);
+	core->SaveOutput(0,"output.txt");
 
 	return 0;
 }

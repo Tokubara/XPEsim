@@ -4,10 +4,10 @@ from __future__ import print_function, division
 import numpy as np
 import csv
 import os
-from sysfunctional import AccCal 
-from module import NNcompile, Inputcompile, GetRefV
-from module import ActivationFunc, LayerCal
-from module import HWEval
+from .sysfunctional import AccCal 
+from .module import NNcompile, Inputcompile, GetRefV
+from .module import ActivationFunc, LayerCal
+from .module import HWEval
 
 class SystemSim(object):
     def __init__(self,

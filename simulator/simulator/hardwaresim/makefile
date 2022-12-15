@@ -38,7 +38,7 @@
 
 .SECONDEXPANSION:
 
-MAINS := HWsim_test.cpp  HWsimMain.cpp
+MAINS := HWsimMain.cpp
 ALLSRC := $(wildcard *.cpp)
 SRC := $(filter-out $(MAINS),$(ALLSRC))
 ALLOBJ := $(ALLSRC:.cpp=.o)
