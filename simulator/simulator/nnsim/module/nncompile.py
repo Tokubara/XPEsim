@@ -22,8 +22,13 @@ class NNcompile(object):
         self.ReadPulseWidth = params.ReadPulseWidth
         self.numCellperWeight = params.numCellperWeight
         self.numLayerOutput = params.numLayerOutput
-        self.RangeMax = 2 ** (self.WeightBits - 1) # The range of bitwise weight
-        #is from -self.RangeMax to (self.RangeMax-1)
+        if self.params["isPreciseNonnegative"]:
+          self.RangeMax = 2 ** self.WeightBits - 1
+          # [0, self.RangeMax]
+        else:  
+          self.RangeMax = 2 ** (self.WeightBits - 1) # The range of bitwise weight
+          #is from -self.RangeMax to (self.RangeMax-1)
+        self.Gstep = (self.Gmax-self.Gmin) / (2**self.CellBits - 1)
         
 
     def apply(self, Weight):
@@ -32,22 +37,28 @@ class NNcompile(object):
         require args:
             Weight: The weights of a layer (float), include weight & bias
         """
-        
-        WeightMax = max(Weight.max(), abs(Weight.min()))
-        # Map to range (-self.RangeMax -- (self.RangeMax-1))
-        Weight = np.round(Weight/WeightMax * self.RangeMax)
-        Weight = np.where(Weight > (self.RangeMax-1), self.RangeMax-1, Weight)
-        # Shift Weight to postive
-        Weight += self.RangeMax
-        Weight = np.abs(Weight)
         self.numLayerOutput = Weight.shape[1]# The number of outputs in the layer
+        if self.params["isPreciseNonnegative"]:
+          # 检查是否符合条件
+          assert Weight.dtype == np.dtype('int64')
+          assert Weight.min()>=0,"has negative value"
+          assert Weight.max()<=self.RangeMax
+
+        else: 
+          WeightMax = max(Weight.max(), abs(Weight.min()))
+          # Map to range (-self.RangeMax -- (self.RangeMax-1))
+          Weight = np.round(Weight/WeightMax * self.RangeMax)
+          Weight = np.where(Weight > (self.RangeMax-1), self.RangeMax-1, Weight)
+          # Shift Weight to postive
+          Weight += self.RangeMax
+          Weight = np.abs(Weight)
         # When using more than 1 cell to represent weight, the weight should 
         # be spilt.
-        if self.numCellperWeight > 1:
-            Weight = Weight.T
+        if self.numCellperWeight > 1: # 成立, 为 2
+            Weight = Weight.T # (1250,801)
             WeightSp = []
             Base = np.asarray([(2**self.CellBits)**x 
-                for x in range(self.numCellperWeight-1, -1, -1)])
+                for x in range(self.numCellperWeight-1, -1, -1)]) # [16,1]
             for i in range(Weight.shape[0]):
                 for j in range(self.numCellperWeight):
                     SpiltTmp = Weight[i] // Base[j]
@@ -56,8 +67,11 @@ class NNcompile(object):
             WeightSp = np.asarray(WeightSp)
             Weight = WeightSp.T
         # Compile the weights to arrays
-        numCoreV = int(np.ceil(Weight.shape[0]/self.numRow))
-        numCoreH = int(np.ceil(Weight.shape[1]/(self.numCol-self.numCellperWeight)))
+        numCoreV = int(np.ceil(Weight.shape[0]/self.numRow)) # 4
+        if self.params["isPreciseNonnegative"]:
+          numCoreH = int(np.ceil(Weight.shape[1]/self.numCol))
+        else:
+          numCoreH = int(np.ceil(Weight.shape[1]/(self.numCol-self.numCellperWeight))) # 10
         CoresInfo = (numCoreV, numCoreH)
         numInput = numCoreV * self.numRow
         numOutput = numCoreH * (self.numCol-self.numCellperWeight)
@@ -70,30 +84,33 @@ class NNcompile(object):
         WeightVsp = np.vsplit(WeightMap, numCoreV)
         for i in range(numCoreV):
             WeightHsp = np.hsplit(WeightVsp[i], numCoreH)
-            for j in range(numCoreH):
-                WeightHsp[j] = np.concatenate(
-                        (WeightHsp[j],
-                            2**(self.CellBits-1) * np.ones((self.numRow, 1)),
-                            np.zeros((self.numRow, self.numCellperWeight-1))
-                            ),
-                        axis=1)
-            WeightVsp[i] = WeightHsp
+            if not self.params["isPreciseNonnegative"]:
+              for j in range(numCoreH):
+                  WeightHsp[j] = np.concatenate(
+                          (WeightHsp[j],
+                              2**(self.CellBits-1) * np.ones((self.numRow, 1)),
+                              np.zeros((self.numRow, self.numCellperWeight-1))
+                              ),
+                          axis=1)
+              WeightVsp[i] = WeightHsp
         Weight = WeightVsp
 
         # Map to conductance
-        Gstep = (self.Gmax-self.Gmin) / (2**self.CellBits - 1)
+        
         for i in range(numCoreV):
             for j in range(numCoreH):
-                Weight[i][j] = self.Gmin + Gstep*Weight[i][j]
-                Weight2 = Weight[i][j]
+                Weight[i][j] = self.Gmin + self.Gstep*Weight[i][j]
+                # Weight2 = Weight[i][j]
 
                 # RRAM model: add write and read noise
-                coeff = [ -6.0e-4, 6.2e-2, 7.2e-1]
-                WeightSD = coeff[0]*(Weight[i][j]*1e6)*(Weight[i][j]*1e6) +\
-                        coeff[1]*(Weight[i][j]*1e6) + coeff[2]
-                WeightSD = WeightSD * 1e-6
-#                print(np.random.randn(self.numRow,self.numCol)*WeightSD)
-                Weight[i][j] = np.random.randn(self.numRow,
-                        self.numCol)*WeightSD + Weight[i][j]
+                if not self.params["isPreciseNonnegative"]:
+                    coeff = [ -6.0e-4, 6.2e-2, 7.2e-1]
+                    WeightSD = coeff[0]*(Weight[i][j]*1e6)*(Weight[i][j]*1e6) +\
+                            coeff[1]*(Weight[i][j]*1e6) + coeff[2]
+                    WeightSD = WeightSD * 1e-6
+    #                print(np.random.randn(self.numRow,self.numCol)*WeightSD)
+                    Weight[i][j] = np.random.randn(self.numRow,
+                            self.numCol)*WeightSD + Weight[i][j]
 
         return Weight, CoresInfo
+

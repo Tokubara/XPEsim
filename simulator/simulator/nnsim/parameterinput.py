@@ -18,7 +18,7 @@ class Parameterinput(object):
         self.WeightBits = 8
         self.CellBits = 4
         self.IOBits = 8
-        self.ADBits = 8
+        self.ADBits = 32
         
         
         # Read parameter from file
@@ -28,15 +28,17 @@ class Parameterinput(object):
             f = fi.read()
             a = f.find("CellType", 0)
             b = f.find("\n", a)
-            CellType  = f[a+len("CellType")+1:b]
+            CellType  = f[a+len("CellType")+1:b] # 这一行是这样写的: -CellType DigitalRRAMTHU
             if CellType == "DigitalRRAMTHU":
                 self.params = {}
                 paramlist = ["CellType", "WeightBits", "CellBits",
                         "Rmax", "Rmin", "ReadVoltage", "IOBits",
                         "numArrayCol", "numArrayRow", "numCoreVMax",
-                        "numCoreHMax"]
-                for i in paramlist:
+                        "numCoreHMax", "isPreciseNonnegative"]
+                for i in paramlist: # 没有处理找不到的情况, 因此文件必须上面的每一个
                     a = f.find("-"+i, 0)
+                    if a == -1: # 配置文件没有
+                      raise Exception("not find")
                     b = f.find("\n", a)
                     paramvalue = f[a+len(i)+1:b]
                     self.params[i] = paramvalue
@@ -50,6 +52,7 @@ class Parameterinput(object):
         self.IOBits = int(self.params["IOBits"])
         self.numCoreVMax = int(self.params["numCoreVMax"]) # Define the max num of veritcal core used on chip
         self.numCoreHMax = int(self.params["numCoreHMax"]) # Define the max num of horizontal core used on chip
+        self.isPreciseNonnegative = bool(int(self.params["isPreciseNonnegative"])) # 对字符串不能直接用 bool(), 
         self.ReadPulseWidth = 50 #unit: ns
         self.numCellperWeight = int(np.ceil(self.WeightBits/self.CellBits))
         self.numLayerOutput = 0 # The number of outputs in the layer

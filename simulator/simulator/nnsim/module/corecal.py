@@ -19,7 +19,10 @@ class CoreCal(object):
         self.ADBits = params.ADBits
         
         self.numCellperWeight = int(np.ceil(self.WeightBits/self.CellBits))
-        self.numOutputPerCore = self.numCol//self.numCellperWeight-1
+        if self.params["isPreciseNonnegative"]:
+          self.numOutputPerCore = self.numCol//self.numCellperWeight
+        else:
+          self.numOutputPerCore = self.numCol//self.numCellperWeight-1
         self.Base = np.asarray([(2**self.CellBits)**x 
                             for x in range(self.numCellperWeight-1, -1, -1)])
 
@@ -37,21 +40,22 @@ class CoreCal(object):
             OutputPerBit = np.dot(np.transpose(Input[l]),
                     WeightCore) * self.ReadVoltage
             # ADC Output
-            OutputPerBit = np.round(OutputPerBit / MaxCurrent *
-                    (2 ** self.ADBits - 1))
+            if self.params["isPreciseNonnegative"]:
+              assert OutputPerBit.max() <= (2 ** self.ADBits - 1)
+            else:
+              OutputPerBit = np.round(OutputPerBit / MaxCurrent *
+                      (2 ** self.ADBits - 1))
             OutputPerBit = OutputPerBit[0]
             # Sum Output
             if self.numCellperWeight > 1:
-                OutputSum = np.zeros(self.numOutputPerCore+1)
+                OutputSum = np.zeros(OutputPerBit.shape[0]) # 这个地方应该改
                 for m in range(self.numCellperWeight):
                     OutputSum += OutputPerBit[m:self.numCol:
                             self.numCellperWeight] * self.Base[m]
-                OutputSum = OutputSum[0:-1] - OutputSum[-1]
-               #OutputPerBit[-self.numCellperWeight] * (Base[0]+1)
             #Shift Adder Output
-                OutputCore += OutputSum * (2 ** (self.IOBits - l))
             else:
                 OutputSum = OutputPerBit
-                OutputSum = OutputSum[0:-1] - OutputSum[-1]
-                OutputCore += OutputSum * (2 ** (self.IOBits - l))
+            if not self.params["isPreciseNonnegative"]:
+              OutputSum = OutputSum[0:-1] - OutputSum[-1]
+            OutputCore += OutputSum * (2 ** (self.IOBits - l))
         return OutputCore

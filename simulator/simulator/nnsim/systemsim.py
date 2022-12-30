@@ -37,8 +37,8 @@ class SystemSim(object):
         self.HWEval_ = HWEval();
     
     def apply(self,
-            Net,
-            Weight,
+            Net, # 字符串 list, 比如 [['Linear'], ['Linear'], ['Linear']]
+            Weight, # dict
             Input,
             Label=None):
         """
@@ -68,7 +68,7 @@ class SystemSim(object):
         # input data pretreatment
         Input = np.array(list(Input), copy=False)
         Input = np.round(Input * (2 ** self.IOBits - 1))
-        Input = Input.reshape(Input.shape[0], 1, 28, 28)
+        Input = Input.reshape(Input.shape[0], 1, 28, 28) # (100, 1, 28, 28)
         
         self.BatchSize = len(Input)
         self.WeightArrays = []
@@ -127,7 +127,7 @@ class SystemSim(object):
             Input = np.transpose(Input, (2, 3, 0, 1))
 
         # Flatten input
-        Input = Input.reshape(Input.shape[0], -1)
+        Input = Input.reshape(Input.shape[0], -1) # 应该没影响
 
         # FC layer
         for i in range(self.numLinear):
@@ -139,7 +139,7 @@ class SystemSim(object):
             self.WeightArrays.append(WeightArrays_)
             self.CoresInfo.append(CoresInfo_)
             
-            InputPulse = inputcompiler.apply(Input)
+            InputPulse = inputcompiler.apply(Input) # 不会重复, 因为后面 Input 会改变
             self.InputArray.append(InputPulse)
 
             maxCurrent = getrefv.apply(InputPulse, WeightArrays_, weight.shape[1])
@@ -156,6 +156,48 @@ class SystemSim(object):
         if (not(Label is None)):
             self.Accuracy = AccCal(Label, Input)
             
+
+    def mvm(self,
+            weight, # array
+            Input, # 向量
+            ):
+        """
+        Numerical computing of hardware
+        """
+        self.BatchSize = len(Input)
+        self.WeightArrays = []
+        self.InputArray = []
+        self.MaxCurrent = []
+        
+        nncompiler = NNcompile(self.params)
+        inputcompiler = Inputcompile(self.params)
+        getrefv = GetRefV(self.params)
+        layercal = LayerCal(self.params)
+        input_sum = np.sum(Input)
+      # Flatten input
+        Input = Input.reshape(Input.shape[0], -1) # 100,784)
+
+        # FC layer
+        WeightArrays_, CoresInfo_ = nncompiler.apply(weight)
+        
+        self.WeightArrays.append(WeightArrays_)
+        self.CoresInfo.append(CoresInfo_)
+        
+        InputPulse = inputcompiler.apply(Input) # 不会重复, 因为后面 Input 会改变
+        self.InputArray.append(InputPulse)
+
+        maxCurrent = getrefv.apply(InputPulse, WeightArrays_, weight.shape[1]) # 这里应该不需要修改 getrefv.apply, 并且 maxCurrent 在这个函数中也不会再用
+
+        self.MaxCurrent.append(maxCurrent)
+        # print("Start to calculate fc layer-%d" % (i+1))
+        output = layercal.DenseCal(InputPulse, WeightArrays_, 0, weight.shape[1])
+        a, b = self.Gstep, self.Gmin
+        output[0] = (output[0]-b*input_sum)/a  # 恢复线性映射
+        
+        # Input = activationfunc.apply(Input, "ReLU")
+
+        return output
+
     def SaveMapData(self,
                     Weight,
                     Input,

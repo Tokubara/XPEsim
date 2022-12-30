@@ -36,12 +36,12 @@ class GetRefV(object):
                 for j in range(len(WeightArrays)):
                     InputCore = Sample[j]
                     WeightCoreH = WeightArrays[j]
-                    numOutputRemain = numLayerOutput * self.numCellperWeight
+                    numOutputRemain = numLayerOutput * self.numCellperWeight # 2500
                     for k in range(len(WeightCoreH)):
                         WeightCore = WeightCoreH[k]
                         for l in range(self.IOBits):# IOBits
                             OutputCore = np.dot(np.transpose(InputCore[l]),
-                                WeightCore) * self.ReadVoltage
+                                WeightCore) * self.ReadVoltage # shape 为 (1,256)
                             if numOutputRemain > self.numCol:
                                 OutputCore = OutputCore
                             else:

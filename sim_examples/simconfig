@@ -17,4 +17,5 @@
 -Rmin 25e3
 -Rmax 265e3
 -ReadVoltage 0.15
+-isPreciseNonnegative 1
 
