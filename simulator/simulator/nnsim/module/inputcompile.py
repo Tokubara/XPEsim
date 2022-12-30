@@ -21,9 +21,9 @@ class Inputcompile(object):
         """
         InputPulse = []
         if self.params.isPreciseNonnegative:
-          numCoreNext = int(np.ceil( (Input[0].shape[0] + 1) / self.numRow))
-        else:
           numCoreNext = int(np.ceil( (Input[0].shape[0]) / self.numRow))
+        else:
+          numCoreNext = int(np.ceil( (Input[0].shape[0] + 1) / self.numRow))
         for sample in Input: # 784
             if self.params.isPreciseNonnegative:
               sample = np.concatenate( (np.zeros( int(self.numRow * numCoreNext) - 
