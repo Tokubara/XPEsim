@@ -35,8 +35,12 @@ class LayerCal(object):
         numCoreH = len(WeightArray[0])
         for i in range(len(InputBatch)):
             Sample = InputBatch[i]
-            OutputPerSample = np.zeros((self.numCol//self.numCellperWeight - 1) *
-                    numCoreH)
+            if self.params.isPreciseNonnegative:
+              OutputPerSample = np.zeros((self.numCol//self.numCellperWeight) *
+                      numCoreH)
+            else:
+              OutputPerSample = np.zeros((self.numCol//self.numCellperWeight - 1) *
+                      numCoreH)
             for j in range(numCoreV):
                 InputCoreV = Sample[j]
                 WeightCoreV = WeightArray[j]

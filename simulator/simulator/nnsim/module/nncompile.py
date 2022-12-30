@@ -22,7 +22,7 @@ class NNcompile(object):
         self.ReadPulseWidth = params.ReadPulseWidth
         self.numCellperWeight = params.numCellperWeight
         self.numLayerOutput = params.numLayerOutput
-        if self.params["isPreciseNonnegative"]:
+        if self.params.isPreciseNonnegative:
           self.RangeMax = 2 ** self.WeightBits - 1
           # [0, self.RangeMax]
         else:  
@@ -38,7 +38,7 @@ class NNcompile(object):
             Weight: The weights of a layer (float), include weight & bias
         """
         self.numLayerOutput = Weight.shape[1]# The number of outputs in the layer
-        if self.params["isPreciseNonnegative"]:
+        if self.params.isPreciseNonnegative:
           # 检查是否符合条件
           assert Weight.dtype == np.dtype('int64')
           assert Weight.min()>=0,"has negative value"
@@ -68,13 +68,14 @@ class NNcompile(object):
             Weight = WeightSp.T
         # Compile the weights to arrays
         numCoreV = int(np.ceil(Weight.shape[0]/self.numRow)) # 4
-        if self.params["isPreciseNonnegative"]:
+        if self.params.isPreciseNonnegative:
           numCoreH = int(np.ceil(Weight.shape[1]/self.numCol))
+          numOutput = numCoreH * self.numCol
         else:
           numCoreH = int(np.ceil(Weight.shape[1]/(self.numCol-self.numCellperWeight))) # 10
+          numOutput = numCoreH * (self.numCol-self.numCellperWeight)
         CoresInfo = (numCoreV, numCoreH)
         numInput = numCoreV * self.numRow
-        numOutput = numCoreH * (self.numCol-self.numCellperWeight)
         WeightMap = np.concatenate(
                 (np.zeros((numInput-Weight.shape[0], Weight.shape[1])), Weight),
                 axis=0)
@@ -84,7 +85,7 @@ class NNcompile(object):
         WeightVsp = np.vsplit(WeightMap, numCoreV)
         for i in range(numCoreV):
             WeightHsp = np.hsplit(WeightVsp[i], numCoreH)
-            if not self.params["isPreciseNonnegative"]:
+            if not self.params.isPreciseNonnegative:
               for j in range(numCoreH):
                   WeightHsp[j] = np.concatenate(
                           (WeightHsp[j],
@@ -92,7 +93,7 @@ class NNcompile(object):
                               np.zeros((self.numRow, self.numCellperWeight-1))
                               ),
                           axis=1)
-              WeightVsp[i] = WeightHsp
+            WeightVsp[i] = WeightHsp
         Weight = WeightVsp
 
         # Map to conductance
@@ -103,7 +104,7 @@ class NNcompile(object):
                 # Weight2 = Weight[i][j]
 
                 # RRAM model: add write and read noise
-                if not self.params["isPreciseNonnegative"]:
+                if not self.params.isPreciseNonnegative:
                     coeff = [ -6.0e-4, 6.2e-2, 7.2e-1]
                     WeightSD = coeff[0]*(Weight[i][j]*1e6)*(Weight[i][j]*1e6) +\
                             coeff[1]*(Weight[i][j]*1e6) + coeff[2]

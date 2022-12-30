@@ -164,6 +164,8 @@ class SystemSim(object):
         """
         Numerical computing of hardware
         """
+        self.numConv = 0
+        self.numLinear = 1
         self.BatchSize = len(Input)
         self.WeightArrays = []
         self.InputArray = []
@@ -191,7 +193,7 @@ class SystemSim(object):
         self.MaxCurrent.append(maxCurrent)
         # print("Start to calculate fc layer-%d" % (i+1))
         output = layercal.DenseCal(InputPulse, WeightArrays_, 0, weight.shape[1])
-        a, b = self.Gstep, self.Gmin
+        a, b = nncompiler.Gstep, nncompiler.Gmin
         output[0] = (output[0]-b*input_sum)/a  # 恢复线性映射
         
         # Input = activationfunc.apply(Input, "ReLU")

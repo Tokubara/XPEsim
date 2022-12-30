@@ -11,12 +11,14 @@ and hardware evaluation for MLP
 n = 256
 w=np.random.randint(0, 255, (n,n))
 x=np.random.randint(0, 10, (1,n))
+right_ans = x@w
 
 # Read paramters in 'simconfig'
 params = simulator.Parameterinput()
 
 # SIM
 HWsim = simulator.SystemSim(params)
-HWsim.mvm(w,x)
+output = HWsim.mvm(w,x)
+assert (right_ans-output).sum() < 1, "not right"
 HWsim.HWEvaluate()
 HWsim.show()
