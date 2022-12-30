@@ -16,6 +16,6 @@
 -CellBits 4
 -Rmin 25e3
 -Rmax 265e3
--ReadVoltage 0.15
+-ReadVoltage 1
 -isPreciseNonnegative 1
 

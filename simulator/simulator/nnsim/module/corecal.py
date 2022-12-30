@@ -57,5 +57,5 @@ class CoreCal(object):
                 OutputSum = OutputPerBit
             if not self.params.isPreciseNonnegative:
               OutputSum = OutputSum[0:-1] - OutputSum[-1]
-            OutputCore += OutputSum * (2 ** (self.IOBits - l))
+            OutputCore += OutputSum * (2 ** (self.IOBits - l - 1))
         return OutputCore

@@ -42,8 +42,6 @@ class Parameterinput(object):
                     b = f.find("\n", a)
                     paramvalue = f[a+len(i)+1:b]
                     self.params[i] = paramvalue
-        self.Gmax = 1/float(self.params["Rmin"])
-        self.Gmin = 1/float(self.params["Rmax"])
         self.ReadVoltage = float(self.params["ReadVoltage"])
         self.numCol = int(self.params["numArrayCol"])
         self.numRow = int(self.params["numArrayRow"])
@@ -56,4 +54,11 @@ class Parameterinput(object):
         self.ReadPulseWidth = 50 #unit: ns
         self.numCellperWeight = int(np.ceil(self.WeightBits/self.CellBits))
         self.numLayerOutput = 0 # The number of outputs in the layer
-        self.RangeMax = 2 ** (self.WeightBits - 1) # The range of bitwise weight is from -self.RangeMax to (self.RangeMax-1)
+        if self.isPreciseNonnegative:
+          self.RangeMax = 2 ** self.WeightBits - 1
+        else:
+          self.RangeMax = 2 ** (self.WeightBits - 1) # The range of bitwise weight is from -self.RangeMax to (self.RangeMax-1)
+        # self.Gmax = 1/float(self.params["Rmin"])
+        # self.Gmin = 1/float(self.params["Rmax"])
+        self.Gmax = 2**self.CellBits - 1
+        self.Gmin = 0

@@ -19,6 +19,6 @@ params = simulator.Parameterinput()
 # SIM
 HWsim = simulator.SystemSim(params)
 output = HWsim.mvm(w,x)
-assert (right_ans-output).sum() < 1, "not right"
+assert np.abs((right_ans-output)).sum() < 1, "not right"
 HWsim.HWEvaluate()
 HWsim.show()
