@@ -194,7 +194,7 @@ class SystemSim(object):
         # print("Start to calculate fc layer-%d" % (i+1))
         output = layercal.DenseCal(InputPulse, WeightArrays_, 0, weight.shape[1])
         a, b = nncompiler.Gstep, nncompiler.Gmin
-        output[0] = (output[0]-b*input_sum)/a  # 恢复线性映射
+        output[0] = np.round((output[0]-b*input_sum)/a/self.ReadVoltage)  # 恢复线性映射
         
         # Input = activationfunc.apply(Input, "ReLU")
 
