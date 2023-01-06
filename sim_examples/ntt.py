@@ -8,7 +8,7 @@ and hardware evaluation for MLP
 
 # Data pretreatment
 # 先 256. 256
-n = 256
+n = 1024
 w=np.random.randint(0, 255, (n,n))
 x=np.random.randint(0, 10, (1,n))
 right_ans = x@w

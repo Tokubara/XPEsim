@@ -58,7 +58,7 @@ class Parameterinput(object):
           self.RangeMax = 2 ** self.WeightBits - 1
         else:
           self.RangeMax = 2 ** (self.WeightBits - 1) # The range of bitwise weight is from -self.RangeMax to (self.RangeMax-1)
-        # self.Gmax = 1/float(self.params["Rmin"])
-        # self.Gmin = 1/float(self.params["Rmax"])
-        self.Gmax = 2**self.CellBits - 1
-        self.Gmin = 0
+        self.Gmax = 1/float(self.params["Rmin"])
+        self.Gmin = 1/float(self.params["Rmax"])
+        # self.Gmax = 12121
+        # self.Gmin = 12

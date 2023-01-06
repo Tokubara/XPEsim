@@ -193,8 +193,14 @@ class SystemSim(object):
         self.MaxCurrent.append(maxCurrent)
         # print("Start to calculate fc layer-%d" % (i+1))
         output = layercal.DenseCal(InputPulse, WeightArrays_, 0, weight.shape[1])
-        a, b = nncompiler.Gstep, nncompiler.Gmin
-        output[0] = np.round((output[0]-b*input_sum)/a/self.ReadVoltage)  # 恢复线性映射
+        a = nncompiler.Gstep
+        b = 0
+        base = 2**nncompiler.CellBits
+        for i in range(round(self.params.WeightBits/nncompiler.CellBits)):
+          b += base**i
+        b *= nncompiler.Gmin
+        output[0] = output[0]/self.ReadVoltage
+        output[0] = np.round((output[0]-b*input_sum)/a)  # 恢复线性映射
         
         # Input = activationfunc.apply(Input, "ReLU")
 
@@ -296,4 +302,3 @@ class SystemSim(object):
 
 if __name__ == "__main__":
     pass
-
